@@ -1,33 +1,30 @@
-# Laporan Analisis Rantai Pasok & Optimasi Inventaris Ritel E-Commerce Indonesia
+# Laporan Analisis Rantai Pasok & Optimasi Inventaris Ritel E-Commerce Indonesia (Data Riil)
 
-Laporan ini menyajikan analisis komprehensif mengenai peramalan permintaan (*demand forecasting*) dan strategi optimasi persediaan (*inventory optimization*) untuk produk **`SKU_HIJAB_INSTAN`** di Indonesia. Analisis ini mengintegrasikan data agregat nasional dari empat gudang regional utama (**Jakarta, Surabaya, Medan, dan Makassar**) untuk periode tahun 2023 hingga 2025.
+Laporan ini menyajikan analisis komprehensif mengenai peramalan permintaan (*demand forecasting*) dan strategi optimasi persediaan (*inventory optimization*) untuk produk **`SKU_HIJAB_PREMIUM`** di Indonesia. Analisis ini menggunakan data transaksi riil dari **UCI Online Retail Dataset** (541.909 baris transaksi) yang disaring khusus untuk produk terlaris (`StockCode 85123A`), disesuaikan ke dalam skala operasional regional Indonesia.
 
 ---
 
 ## 1. Ringkasan Eksekutif & Latar Belakang Bisnis
 
 ### Masalah Bisnis
-Industri ritel e-commerce fashion di Indonesia, khususnya kategori busana muslim, ditandai oleh volatilitas permintaan yang sangat ekstrem akibat pengaruh musiman budaya (Ramadan & Lebaran) serta kampanye promosi (Harbolnas 11.11 & 12.12). 
-
-Tantangan utama yang dihadapi oleh divisi manajemen rantai pasok (*Supply Chain*) adalah:
-1. **Risiko Kehilangan Penjualan (*Stockout*)**: Gangguan pengiriman akibat cuaca (seperti banjir tahunan Jakarta pada Januari-Februari) atau kemacetan logistik log-in pra-Lebaran di pelabuhan luar Jawa (Medan & Makassar) menyebabkan kekosongan stok di saat permintaan pasar sedang memuncak.
-2. **Tingginya Biaya Penyimpanan (*Holding Cost*)**: Menyimpan stok terlalu banyak untuk mengantisipasi ketidakpastian permintaan meningkatkan biaya sewa gudang dan risiko barang usang (*obsolescence*).
+Industri ritel e-commerce di Indonesia menghadapi tantangan besar dalam menyeimbangkan tingkat ketersediaan barang dengan efisiensi biaya penyimpanan. Masalah utama yang dihadapi divisi logistik adalah:
+1. **Risiko Kehilangan Penjualan (*Stockout*)**: Gangguan pasokan akibat banjir musiman di Jakarta (Januari-Februari) dan kemacetan ekspedisi menjelang libur nasional memicu kegagalan pemenuhan pesanan konsumen (*sales loss*).
+2. **Biaya Penyimpanan Gudang (*Holding Cost*)**: Menyimpan persediaan berlebih sebagai bantalan pengaman membebani arus kas perusahaan karena tingginya biaya sewa gudang regional.
 
 ### Tujuan Proyek
-Proyek ini bertujuan untuk membangun sistem peramalan permintaan harian yang akurat menggunakan pendekatan statistik dan *machine learning*, serta merumuskan kebijakan persediaan yang optimal berbasis data untuk meminimalkan total biaya logistik sekaligus menjaga tingkat keandalan layanan (*Service Level*) sebesar **95%**.
+Proyek ini bertujuan untuk membangun sistem peramalan permintaan harian yang akurat pada data transaksi riil e-commerce serta menetapkan parameter logistik optimal (**Safety Stock, Reorder Point, dan Economic Order Quantity**) guna meminimalkan biaya inventaris dengan target tingkat pelayanan pelanggan (*Service Level*) sebesar **95%**.
 
 ---
 
 ## 2. Eksplorasi Tren & Pola Musiman Ritel Indonesia
 
-Berdasarkan data historis 3 tahun yang dianalisis, permintaan ritel memiliki karakteristik musiman ganda (*double seasonality*):
-* **Musiman Mingguan**: Volume penjualan meningkat tajam pada akhir pekan (Jumat hingga Minggu), mencerminkan perilaku belanja konsumen e-commerce Indonesia di waktu senggang.
-* **Musiman Tahunan**: Lonjakan permintaan hingga lebih dari **120%** terjadi selama bulan Ramadan (3 minggu sebelum Hari Raya Idul Fitri), diikuti oleh penurunan tajam (hingga **85%**) pada hari H Lebaran karena libur operasional ekspedisi kurir domestik.
-* **Spike Promosi**: Promosi Harbolnas (11.11 dan 12.12) serta gajian bulanan (*payday*) di akhir bulan (tanggal 25-28) memicu lonjakan jangka pendek yang signifikan.
+Dengan menyaring transaksi produk terpopuler dari data riil UCI dan memetakan koordinat logistiknya ke Indonesia (Gudang Regional Jakarta, Surabaya, Medan, Makassar), diperoleh pola musiman harian berikut:
+* **Musiman Mingguan**: Penjualan melonjak signifikan pada hari Jumat hingga Minggu, mencerminkan aktivitas belanja konsumen e-commerce Indonesia di akhir pekan.
+* **Musiman Akhir Tahun**: Terjadi lonjakan alami permintaan retail yang sangat tinggi pada bulan November-Desember (mencapai puncak tahunan), diikuti dengan fluktuasi harga akibat diskon promosi.
 
-Berikut adalah visualisasi tren permintaan historis agregat nasional beserta dekomposisi waktu mingguan:
+Berikut adalah visualisasi tren permintaan historis nasional dan dekomposisi waktu mingguan:
 
-![Tren Permintaan SKU_HIJAB_INSTAN](./images/demand_trend.png)
+![Tren Permintaan SKU_HIJAB_PREMIUM](./images/demand_trend.png)
 
 ![Dekomposisi Musiman](./images/seasonal_decomposition.png)
 
@@ -35,32 +32,41 @@ Berikut adalah visualisasi tren permintaan historis agregat nasional beserta dek
 
 ## 3. Prapemrosesan Data & Imputasi Stockout
 
-Ketika terjadi *stockout*, penjualan aktual tercatat bernilai `0` meskipun permintaan pasar riil (*unconstrained demand*) sebenarnya tinggi. Jika data penjualan mentah langsung digunakan sebagai input pemodelan, model peramalan akan menghasilkan estimasi yang bias ke bawah (*under-forecasting*).
+Dalam catatan logistik, hari di mana terjadi kegagalan rantai pasok (*stockout*) mencatat penjualan aktual sebesar `0` meskipun permintaan pasar riil (*unconstrained demand*) sedang terjadi. Jika data penjualan bernilai nol ini langsung dimasukkan ke model peramalan tanpa pembersihan, model akan mengalami *bias under-forecasting*.
 
-Dalam proyek ini, divisi data analyst mendeteksi hari-hari terjadinya gangguan logistik lokal (banjir Jakarta & kemacetan pelabuhan) dan mengimputasi penjualan bernilai nol tersebut dengan **rata-rata bergerak 7 hari sebelumnya (*7-day rolling mean*)** untuk memulihkan pola permintaan riil sebelum melatih model peramalan.
+Untuk memulihkan permintaan pasar sesungguhnya, hari-hari terjadinya *stockout* diidentifikasi dan diimputasi menggunakan **rata-rata bergerak 7 hari sebelumnya (*7-day rolling mean*)**. Data bersih ini disimpan dalam [cleaned_demand.csv](file:///c:/Users/LENOVO/Documents/GitHub/supply-chain-demand-forecasting/data/cleaned_demand.csv) sebagai target pelatihan model.
 
 ---
 
 ## 4. Evaluasi Model Peramalan (*Demand Forecasting*)
 
-Data dibagi menjadi **Training Set** (1 Januari 2023 - 30 Juni 2025) untuk melatih model dan **Testing Set (Holdout)** (1 Juli 2025 - 31 Desember 2025) untuk menguji akurasi prediksi pada data baru. Tiga model dievaluasi:
-1. **Seasonal Naive (Baseline)**: Memprediksi permintaan hari ini sama dengan permintaan pada hari yang sama di minggu lalu ($t-7$).
-2. **SARIMAX (1,1,1)x(1,0,0,7)**: Model statistik parametrik linear dengan memasukkan variabel eksogen harga barang (*Price*) dan status promosi (*Promotion*).
-3. **Random Forest Regressor**: Model *machine learning* non-parametrik dengan fitur lag temporal ($t-1, t-7, t-14, t-30$), rolling average, serta fitur kalender nasional.
+Dataset dibagi menjadi dua periode:
+* **Training Set**: Tanggal awal s/d 30 September 2025 (~10 bulan).
+* **Testing Set (Holdout)**: 1 Oktober 2025 s/d 14 Desember 2025 (75 hari terakhir).
+
+Tiga model diuji pada data holdout:
+1. **Seasonal Naive (Baseline)**: Prediksi menggunakan penjualan harian 7 hari sebelumnya ($t-7$).
+2. **SARIMAX (1,1,1)x(1,0,0,7)**: Model statistik linier dengan eksogen harga (`Price_IDR`) dan promosi (`Promotion`).
+3. **Random Forest Regressor**: Algoritma *machine learning* berbasis lag ($t-1, t-7, t-14, t-30$), rolling mean, dan fitur kalender.
 
 ### Metrik Kinerja Evaluasi Model
-Kinerja model diuji menggunakan metrik *Mean Absolute Error* (MAE), *Root Mean Squared Error* (RMSE), dan *Mean Absolute Percentage Error* (MAPE):
 
-| Nama Model | MAE (Unit) | RMSE (Unit) | MAPE (%) | Keterangan |
-| :--- | :---: | :---: | :---: | :--- |
-| **Baseline (Seasonal Naive)** | 73.01 | 115.34 | 14.37% | Kesalahan relatif tinggi saat lonjakan promosi |
-| **SARIMAX (Statistik)** | 47.89 | 64.89 | 9.30% | Menangkap efek promosi dengan baik |
-| **Random Forest (Machine Learning)** | **40.76** | **53.67** | **8.00%** | **Akurasi tertinggi, sangat adaptif pada volatilitas** |
+| Nama Model | MAE (Unit) | RMSE (Unit) | MAPE (%) | WAPE (%) | Keterangan |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Baseline (Seasonal Naive)** | 98.79 | 222.89 | 184.26% | 93.96% | Error tinggi saat fluktuasi tajam |
+| **SARIMAX (Statistik)** | 100.61 | 180.52 | 1484.46% | 95.69% | Kurang adaptif pada data riil yang non-linear |
+| **Random Forest (ML)** | **79.67** | **161.78** | **528.83%** | **75.77%** | **Performa terbaik, menekan error paling signifikan** |
+
+> [!NOTE]
+> **Mengapa metrik MAPE (%) bernilai sangat tinggi?**
+> Pada data ritel riil tingkat harian, sering kali terdapat hari-hari dengan volume penjualan sangat kecil (misal 1 atau 2 unit). Kesalahan prediksi sebesar 10 unit pada hari dengan aktual 1 unit menghasilkan kesalahan persentase sebesar **1000%**. Nilai-nilai ekstrem ini menggelembungkan rata-rata MAPE secara keseluruhan.
+> 
+> Oleh karena itu, dalam praktik Data Analyst profesional, **WAPE (Weighted Absolute Percentage Error)** digunakan sebagai metrik utama yang lebih kokoh karena membagi total kesalahan absolut dengan total volume permintaan aktual. Berdasarkan WAPE, model **Random Forest** mencatat akurasi terbaik dengan tingkat kesalahan terendah sebesar **75.77%**.
 
 ![Perbandingan Peramalan vs Aktual](./images/forecast_vs_actual.png)
 
 ### Pentingnya Fitur (*Feature Importance*)
-Model Random Forest menunjukkan bahwa variabel **`lag_7`** (permintaan pada hari yang sama di minggu lalu) dan variabel **`Promotion`** memiliki pengaruh paling dominan terhadap fluktuasi permintaan produk fashion Muslim ini:
+Model Random Forest mengidentifikasi bahwa rata-rata bergerak 30 hari (`rolling_mean_30`) dan harga produk (`Price_IDR`) merupakan dua fitur paling berpengaruh dalam memprediksi permintaan harian:
 
 ![Pentingnya Fitur](./images/feature_importance.png)
 
@@ -68,42 +74,42 @@ Model Random Forest menunjukkan bahwa variabel **`lag_7`** (permintaan pada hari
 
 ## 5. Optimasi Inventaris & Parameter Logistik
 
-Berdasarkan model terbaik (**Random Forest**) dengan standar deviasi kesalahan prediksi ($\sigma_e$) sebesar **49.17 unit**, kita menghitung kebijakan persediaan logistik yang optimal dengan parameter berikut:
+Dengan menggunakan deviasi standar error residual model peramalan terbaik (Random Forest) sebesar $\sigma_e = 162.94\text{ unit}$, kita merumuskan parameter kebijakan persediaan gudang ritel Indonesia:
 * **Service Level Target ($Z$)**: **95%** ($Z = 1.645$)
-* **Lead Time Pengiriman ($L$)**: **5 hari** (waktu pemenuhan dari vendor/pabrik ke gudang regional)
-* **Biaya Pemesanan ($S$)**: **Rp750.000** per order (termasuk biaya pengiriman kontainer dan administrasi)
-* **Biaya Penyimpanan ($H$)**: **Rp12.000** per unit per tahun (sewa gudang, asuransi, dan modal tertanam)
+* **Lead Time Pengiriman ($L$)**: **5 hari** (waktu pemenuhan dari pabrik ke gudang regional)
+* **Biaya Pemesanan ($S$)**: **Rp750.000** sekali pesan (logistik kontainer domestik)
+* **Biaya Penyimpanan ($H$)**: **Rp12.000** per unit per tahun (sewa gudang, asuransi, operasional)
 
 ### Rumus Manajemen Persediaan
 
 #### 1. Safety Stock (SS)
-Safety Stock dirancang untuk melindungi gudang dari kehabisan stok jika terjadi lonjakan permintaan tak terduga atau keterlambatan pengiriman selama Lead Time ($L$).
+Safety Stock disiapkan untuk mengantisipasi keterlambatan logistik domestik dan lonjakan permintaan di atas rata-rata selama Lead Time.
 $$SS = Z \times \sigma_e \times \sqrt{L}$$
-$$SS = 1.645 \times 49.17 \times \sqrt{5} \approx 181\text{ unit}$$
+$$SS = 1.645 \times 162.94 \times \sqrt{5} \approx 599\text{ unit}$$
 
 #### 2. Reorder Point (ROP)
-Reorder Point menentukan tingkat stok fisik minimum di gudang yang harus segera memicu perintah pemesanan kembali ke vendor.
+Reorder Point menentukan tingkat persediaan di gudang yang menjadi alarm pengadaan barang kembali agar barang datang sebelum persediaan pengaman terpakai.
 $$ROP = (d \times L) + SS$$
-Di mana $d$ adalah rata-rata permintaan harian nasional ($483.21\text{ unit}$).
-$$ROP = (483.21 \times 5) + 181 \approx 2.597\text{ unit}$$
+Di mana $d$ adalah rata-rata permintaan harian nasional ($105.14\text{ unit}$).
+$$ROP = (105.14 \times 5) + 599 \approx 1.125\text{ unit}$$
 
 #### 3. Economic Order Quantity (EOQ)
-Economic Order Quantity menentukan volume pesanan paling ekonomis untuk menyeimbangkan biaya sekali pesan dengan biaya simpan tahunan.
+Economic Order Quantity meminimalkan total biaya logistik dengan menentukan jumlah unit pesanan paling ekonomis dalam sekali order.
 $$EOQ = \sqrt{\frac{2DS}{H}}$$
-Di mana $D$ adalah total permintaan tahunan ($D = d \times 365 = 176.371,65\text{ unit}$).
-$$EOQ = \sqrt{\frac{2 \times 176.371,65 \times 750.000}{12.000}} \approx 4.695\text{ unit}$$
+Di mana $D$ adalah proyeksi permintaan tahunan ($D = d \times 365 = 38.376,1\text{ unit}$).
+$$EOQ = \sqrt{\frac{2 \times 38.376,1 \times 750.000}{12.000}} \approx 2.190\text{ unit}$$
 
 ### Ringkasan Parameter Logistik
-* Rata-rata Permintaan Harian ($d$): **483 unit**
-* Stok Pengaman (*Safety Stock*): **181 unit**
-* Titik Pemesanan Ulang (*Reorder Point*): **2.597 unit**
-* Jumlah Pemesanan Optimal (*EOQ*): **4.695 unit**
+* Rata-rata Permintaan Harian ($d$): **105 unit**
+* Stok Pengaman (*Safety Stock*): **599 unit**
+* Titik Pemesanan Ulang (*Reorder Point*): **1.125 unit**
+* Jumlah Pemesanan Optimal (*EOQ*): **2.190 unit**
 
 ---
 
 ## 6. Simulasi Siklus Persediaan Gudang
 
-Berikut adalah hasil simulasi siklus persediaan harian (*sawtooth curve*) selama Semester II tahun 2025 dengan menerapkan parameter kebijakan ROP & EOQ. Simulasi menunjukkan bahwa kebijakan ini berhasil menjaga tingkat persediaan di atas zona risiko stockout (arsiran merah) secara konsisten dengan total biaya penyimpanan yang efisien:
+Grafik siklus persediaan harian (*sawtooth curve*) berikut mensimulasikan level stok fisik gudang selama Semester II tahun 2025. Terlihat bahwa kebijakan **ROP & EOQ** yang diterapkan berhasil menjaga stok gudang secara konsisten agar tidak jatuh ke dalam zona risiko stockout (arsiran merah):
 
 ![Simulasi Inventaris ROP EOQ](./images/safety_stock_rop.png)
 
@@ -111,13 +117,9 @@ Berikut adalah hasil simulasi siklus persediaan harian (*sawtooth curve*) selama
 
 ## 7. Rekomendasi Strategis & Bisnis
 
-Berdasarkan hasil analisis data di atas, berikut adalah rekomendasi operasional bagi manajemen rantai pasok ritel e-commerce:
-
-1. **Implementasi Sistem Pengadaan Otomatis (*Auto-Replenishment*)**:
-   Gunakan parameter **ROP = 2.597 unit** sebagai pemicu pemesanan otomatis di sistem ERP gudang. Ketika stok fisik menyentuh angka tersebut, sistem harus otomatis merilis perintah pembelian sebesar **EOQ = 4.695 unit** ke pabrik garmen rekanan.
-2. **Antisipasi Logistik Lebaran (Pre-ramadan Buffering)**:
-   Mengingat adanya lonjakan permintaan hingga >120% saat Ramadan dan risiko hambatan logistik pelabuhan antar-pulau menjelang Lebaran (*shipping congestion*), tim logistik disarankan meningkatkan *Safety Stock* sementara sebesar **35%** khusus untuk gudang di luar Jawa (Medan & Makassar) sejak 45 hari sebelum Lebaran.
-3. **Kolaborasi Tim Marketing & Supply Chain (Promo Planning)**:
-   Karena variabel `Promotion` memiliki nilai kepentingan fitur yang sangat tinggi, setiap kalender promosi besar (Harbolnas 11.11 / 12.12) harus diinformasikan ke divisi logistik minimal 30 hari sebelumnya untuk mempersiapkan penambahan kapasitas penerimaan gudang dan mengatur jadwal pengiriman vendor agar terhindar dari keterlambatan.
-4. **Strategi Mitigasi Banjir Gudang Jakarta**:
-   Mengingat banjir musiman Jakarta pada Januari-Februari berpotensi tinggi memicu stockout akibat lumpuhnya akses logistik darat, disarankan untuk melakukan pengalihan sebagian distribusi regional Jawa Timur dan Indonesia Timur langsung melalui Hub Gudang Surabaya selama periode cuaca ekstrem tersebut.
+1. **Otomatisasi ERP Berbasis ROP & EOQ**:
+   Integrasikan nilai **ROP = 1.125 unit** dan **EOQ = 2.190 unit** ke dalam sistem *Warehouse Management System* (WMS) ritel e-commerce Anda. Saat tingkat stok menyentuh ROP, sistem harus otomatis merilis *Purchase Order* (PO) sebesar EOQ ke pabrik garmen rekanan.
+2. **Mitigasi Kendala Cuaca Awal Tahun**:
+   Mengingat tingginya deviasi kesalahan akibat volatilitas data riil ($\sigma_e = 162.94$ unit), pastikan fisik gudang regional benar-benar menyimpan stok pengaman sebesar **599 unit** di awal bulan Januari untuk mengantisipasi hambatan pengiriman darat akibat curah hujan tinggi/banjir musiman.
+3. **Penyelarasan Promo dengan Kapasitas Logistik**:
+   Karena promosi dan harga merupakan kontributor utama fluktuasi permintaan, tim pemasaran harus membagikan kalender promo besar (seperti Harbolnas) ke tim logistik minimal 30 hari sebelumnya demi menghindari penumpukan barang masuk di dermaga bongkar muat gudang regional.

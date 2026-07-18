@@ -1,7 +1,7 @@
 {
-    "Average_Daily_Demand": 483.21,
-    "Residual_Std_Dev_Units": 49.17,
-    "Safety_Stock_Units": 181,
-    "Reorder_Point_Units": 2597,
-    "Economic_Order_Quantity_Units": 4695
+    "Average_Daily_Demand": 105.14,
+    "Residual_Std_Dev_Units": 162.94,
+    "Safety_Stock_Units": 599,
+    "Reorder_Point_Units": 1125,
+    "Economic_Order_Quantity_Units": 2190
 }
