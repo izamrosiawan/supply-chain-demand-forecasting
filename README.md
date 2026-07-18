@@ -42,7 +42,7 @@ Untuk memulihkan permintaan pasar sesungguhnya, hari-hari terjadinya *stockout* 
 
 Dataset dibagi menjadi dua periode:
 * **Training Set**: Tanggal awal s/d 30 September 2025 (~10 bulan).
-* **Testing Set (Holdout)**: 1 Oktober 2025 s/d 14 Desember 2025 (75 hari terakhir).
+* **Testing Set (Holdout)**: 1 Oktober 2025 s/d 9 Desember 2025 (70 hari terakhir).
 
 Tiga model diuji pada data holdout:
 1. **Seasonal Naive (Baseline)**: Prediksi menggunakan penjualan harian 7 hari sebelumnya ($t-7$).
@@ -53,8 +53,8 @@ Tiga model diuji pada data holdout:
 
 | Nama Model | MAE (Unit) | RMSE (Unit) | MAPE (%) | WAPE (%) | Keterangan |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| **Baseline (Seasonal Naive)** | 98.79 | 222.89 | 184.26% | 93.96% | Error tinggi saat fluktuasi tajam |
-| **SARIMAX (Statistik)** | 100.61 | 180.52 | 1484.46% | 95.69% | Kurang adaptif pada data riil yang non-linear |
+| **Baseline (Seasonal Naive)** | 98.79 | 222.89 | 184.26% | 93.95% | Error tinggi saat fluktuasi tajam |
+| **SARIMAX (Statistik)** | 100.61 | 180.52 | 1484.46% | 95.68% | Kurang adaptif pada data riil yang non-linear |
 | **Random Forest (ML)** | **79.67** | **161.78** | **528.83%** | **75.77%** | **Performa terbaik, menekan error paling signifikan** |
 
 > [!NOTE]
@@ -66,7 +66,7 @@ Tiga model diuji pada data holdout:
 ![Perbandingan Peramalan vs Aktual](./images/forecast_vs_actual.png)
 
 ### Pentingnya Fitur (*Feature Importance*)
-Model Random Forest mengidentifikasi bahwa rata-rata bergerak 30 hari (`rolling_mean_30`) dan harga produk (`Price_IDR`) merupakan dua fitur paling berpengaruh dalam memprediksi permintaan harian:
+Model Random Forest mengidentifikasi bahwa harga produk (`Price_IDR`) dan rata-rata bergerak 30 hari (`rolling_mean_30`) merupakan dua fitur paling berpengaruh dalam memprediksi permintaan harian:
 
 ![Pentingnya Fitur](./images/feature_importance.png)
 
@@ -91,13 +91,14 @@ $$SS = 1.645 \times 162.94 \times \sqrt{5} \approx 599\text{ unit}$$
 Reorder Point menentukan tingkat persediaan di gudang yang menjadi alarm pengadaan barang kembali agar barang datang sebelum persediaan pengaman terpakai.
 $$ROP = (d \times L) + SS$$
 Di mana $d$ adalah rata-rata permintaan harian nasional ($105.14\text{ unit}$).
-$$ROP = (105.14 \times 5) + 599 \approx 1.125\text{ unit}$$
+$$ROP = (105.14 \times 5) + 599 \approx 1125\text{ unit}$$
 
 #### 3. Economic Order Quantity (EOQ)
 Economic Order Quantity meminimalkan total biaya logistik dengan menentukan jumlah unit pesanan paling ekonomis dalam sekali order.
 $$EOQ = \sqrt{\frac{2DS}{H}}$$
-Di mana $D$ adalah proyeksi permintaan tahunan ($D = d \times 365 = 38.376,1\text{ unit}$).
-$$EOQ = \sqrt{\frac{2 \times 38.376,1 \times 750.000}{12.000}} \approx 2.190\text{ unit}$$
+Di mana $D$ adalah proyeksi permintaan tahunan ($D = d \times 365 = 38376.1\text{ unit}$).
+$$EOQ = \sqrt{\frac{2DS}{H}}$$
+$$EOQ = \sqrt{\frac{2 \times 38376.1 \times 750000}{12000}} \approx 2190\text{ unit}$$
 
 ### Ringkasan Parameter Logistik
 * Rata-rata Permintaan Harian ($d$): **105 unit**
