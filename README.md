@@ -1,4 +1,4 @@
-# Supply Chain Demand Forecasting & Inventory Optimization
+﻿# Supply Chain Demand Forecasting & Inventory Optimization
 
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Statsmodels](https://img.shields.io/badge/Statsmodels-Forecasting-orange.svg)](https://www.statsmodels.org/)
@@ -9,7 +9,7 @@ Repositori ini menyajikan analisis peramalan permintaan produk (*Demand Forecast
 
 ---
 
-## 📂 Struktur Proyek
+## Struktur Proyek
 
 ```
 ├── .gitignore          # Konfigurasi pengabaian cache Git
@@ -24,7 +24,7 @@ Repositori ini menyajikan analisis peramalan permintaan produk (*Demand Forecast
 
 ---
 
-## 💻 Implementasi Modular & Pengujian Otomatis
+## Implementasi Modular & Pengujian Otomatis
 
 Modul demand forecaster tersedia di `src/forecaster.py`:
 
@@ -43,7 +43,7 @@ pytest tests/
 
 ---
 
-## 🚀 Cara Menjalankan
+## Cara Menjalankan
 
 1. **Pasang Dependensi**:
    ```bash
@@ -57,3 +57,4 @@ pytest tests/
 
 ---
 *Supply Chain Demand Forecasting Project.*
+
